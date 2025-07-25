@@ -18,9 +18,15 @@ shp.df <- as.data.frame(sjrp.df)
 ################################
 ### Union of tables
 data <- left_join(data,shp.df,by=c("censitario" = "CD_SETOR"))
-#data$E <- data$tot_pessoas*(sum(data$casos)/sum(data$tot_pessoas))
+#Calculate the Expected cases by quarter.
+#data <- data %>% group_by(trimestre) %>% mutate(
+#    taxa_trimestre = sum(casos) / sum(pessoa_ajustada),
+#    E = pessoa_ajustada * taxa_trimestre,
+#    SIR = ifelse(E == 0, 0, casos / E)
+#  ) %>%
+#ungroup()
 data$E <- data$pessoa_ajustada*(sum(data$casos)/sum(data$pessoa_ajustada))
-data$SIR <- ifelse(data$E == 0, 0, data$casos / data$E)
+#data$SIR <- ifelse(data$E == 0, 0, data$casos / data$E)
 ##CREATE SPACE, TIME AND SPACETIME
 data <- data %>% arrange(ano, trimestre) %>% mutate(time = (ano - min(ano)) * 4 + trimestre)
 

@@ -1,18 +1,26 @@
 rm(list=ls())
 library(tidyverse)
+library(INLAOutputs)
 library(sf)
 library(ggplot2)
 library(dplyr)
 library(ggsn)
 library(RColorBrewer)
 library(scico)
-
+library(INLA)
+library(tidyverse)
+library(lattice)
+library(spdep)
+library(cowplot)
+library(RSpectra)
+library(RColorBrewer)
 ####
 setwd("c:\\users\\gerson.laurindo\\desktop\\Imperial\\scripts\\")
 data_folder<-"c:\\users\\gerson.laurindo\\desktop\\Imperial\\Dados\\"
 map_folder<-"c:\\users\\gerson.laurindo\\desktop\\Imperial\\Mapas\\"
-
-df <- read.csv(paste(data_folder,"data_sjrp_0603.csv", sep=""),dec=',', sep=';')
+source('reading data.R')
+#Create df
+df = left_join(shp, data, by=c("CD_SETOR" = "censitario")) #from here data_st have the space, time and coordinates
 load("modelos/model_intI.RData")
 
 fit <- model.st.intI
@@ -24,42 +32,43 @@ rnams <- c( paste0(
   ), "internal.marginals.hyperpar", "mlik", "mode", "cpu.used")
 
 ndata <- nrow(df)
-sres <- fit[rnams]
-sres$summary.fitted.values <- fit$summary.fitted.values[1:ndata, c(1, 2)]
+#sres <- fit[rnams]
+#sres$summary.fitted.values <- fit$summary.fitted.values[1:ndata, c(1, 2)]
 
 # posterior mean
-df$pred_mean = fit$summary.fitted.values[1:ndata, "mean"]
+df$pred_mean = fit$summary.fitted.values[1:ndata, "mean"] / df$pessoa_ajustada*1000
 # lower limits of the 95% credible intervals
-df$pred_ll = fit$summary.fitted.values[1:ndata, "0.025quant"]
+df$pred_ll = fit$summary.fitted.values[1:ndata, "0.025quant"] / df$pessoa_ajustada*1000
 # upper limits of the 95% credible intervals
-df$pred_ul = fit$summary.fitted.values[1:ndata, "0.975quant"]
-
-#Calculating the adjusted incidence rate
-df$pred_mean <-  fit$summary.fitted.values$mean*1000/df$pessoa_ajustada
-df$pred_ll <-  fit$summary.fitted.values$'0.025quant'*1000/df$pessoa_ajustada
-df$pred_ul <-  fit$summary.fitted.values$'0.975'*1000/df$pessoa_ajustada
-
-shp <- sf::st_read(paste(map_folder,"sjrp_final_utm.shp",sep="")) # lendo mapa
-
-#plot (shp)
+df$pred_ul = fit$summary.fitted.values[1:ndata, "0.975quant"] / df$pessoa_ajustada*1000
 
 #names(df)
 #table(df$ano, df$trimestre)
 
 df$id_key_time <- paste (df$trimestre, "_", df$ano, sep="")
 
-#df$censitario
+dw <- df %>%
+  st_drop_geometry() %>%
+  select(CD_SETOR, id_key_time, pred_mean) %>%
+  as.data.frame() %>%
+  reshape(
+    timevar   = "id_key_time",
+    idvar     = "CD_SETOR",
+    direction = "wide"
+  )
 
-dw <-df %>% select (id_key_time, censitario, pred_mean) %>% 
-  reshape(timevar = "id_key_time",
-          idvar = "censitario", direction = "wide")
+setores_unicos <- df %>% st_drop_geometry() %>% select(CD_SETOR) %>% distinct()
+map <- merge(setores_unicos, dw, by = "CD_SETOR")
 
-#names(shp)
+map_sf <- map %>%
+  pivot_longer(
+    cols = starts_with("pred_mean"),
+    names_to = "id_key_time",
+    values_to = "pred_mean"
+  )
 
-map <- merge(shp[,c("CD_SETOR")], dw, by.x = "CD_SETOR", by.y = "censitario")
-map_sf <- st_as_sf(map)
-
-map_sf <- gather(map_sf, id_key_time, pred_mean, paste0("pred_mean.", 1:4, "_", rep(2012:2024, each = 4)))
+map_sf <- left_join(map_sf, shp %>% select(CD_SETOR, geometry), by = "CD_SETOR") %>%  st_as_sf()
+#map_sf <- gather(map, id_key_time, pred_mean, paste0("pred_mean.", 1:4, "_", rep(2012:2024, each = 4)))
 #table(map_sf$id_key_time)
 
 map_sf$id <- gsub("pred_mean.", "", map_sf$id_key_time) 
@@ -82,6 +91,7 @@ map_sf$id <- factor(map_sf$id,
 
 ###### Categoric Map
 ################### Creating categories by quantil
+# USING OFFSET=LOG(POP)
 options(scipen = 999)
 #defining quantil - using 6
 ver_quantis <- function(vetor, n_classes) {
@@ -94,15 +104,15 @@ map_sf$quantil <- NA
 #boxplot(map_sf$pred_mean)
 
 #map_sf$quantil[map_sf$pred_mean == 0] <- "0"
-map_sf$quantil[map_sf$pred_mean > 0 & map_sf$pred_mean < 0.3] <- "0.01-0.30"
+map_sf$quantil[map_sf$pred_mean > 0 & map_sf$pred_mean < 0.30] <- "0.01-0.30"
 map_sf$quantil[map_sf$pred_mean >= 0.3 & map_sf$pred_mean < 0.8] <- "0.30-0.80"
-map_sf$quantil[map_sf$pred_mean >= 0.8 & map_sf$pred_mean < 2] <- "0.80-2.00"
-map_sf$quantil[map_sf$pred_mean >= 2 & map_sf$pred_mean < 6] <- "2.00-6.00"
-map_sf$quantil[map_sf$pred_mean >= 6 & map_sf$pred_mean < 20] <- "6.00-20.00"
-map_sf$quantil[map_sf$pred_mean >= 20] <-">20.00"
+map_sf$quantil[map_sf$pred_mean >= 0.8 & map_sf$pred_mean < 2.0] <- "0.80-2.00"
+map_sf$quantil[map_sf$pred_mean >= 2.0 & map_sf$pred_mean < 6.0] <- "2.00-6.00"
+map_sf$quantil[map_sf$pred_mean >= 6.0 & map_sf$pred_mean < 20.0] <- "6.00-16.00"
+map_sf$quantil[map_sf$pred_mean >= 16] <-">16.00"
 
 map_sf$quantil <- factor(map_sf$quantil, 
-                         levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-20.00",">20.00"))
+                         levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00"))
 
 #table(map_sf$quantil)
 #library(scico)
@@ -112,7 +122,7 @@ ggp <- ggplot() +
   geom_sf(data = map_sf, aes(fill = quantil), color = "transparent") +
   theme_classic() + 
   scale_fill_manual(name = "pred_mean", values= rev(paleta), 
-                    limits =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-20.00",">20.00")) + # Especificando as cores
+                    limits =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00")) + # Especificando as cores
   # Se usar RcolorBrewer - abrir esse abaixo
   #   scale_fill_brewer(name = "pred_mean", palette = "Blues"
   #                   #, direction = -1 
@@ -168,7 +178,7 @@ ggp
 # st_crs(map_sf)
 # st_bbox(map_sf)
 
-jpeg("mapas/map_predmean.jpeg", width = 14, height = 10, 
+jpeg("mapas/map_predmean_offset_1000.jpeg", width = 14, height = 10, 
      units = "cm", res = 2000, type = "cairo"
      # compression = "lzw"
 )
@@ -184,18 +194,32 @@ north2(ggp = ggp, scale = 0.050, x = 0.97, y = 0.098, symbol = 10)
 dev.off()
 
 ##########################################################################
+##########################################################################
+##########################################################################
+##########################################################################
+############################################################################
 #### dw_ll ####
-dw_ll <-df %>% select (id_key_time, censitario, pred_ll) %>% 
-  reshape(timevar = "id_key_time",
-          idvar = "censitario", direction = "wide")
+dw_ll <- df %>%
+  st_drop_geometry() %>%
+  select(CD_SETOR, id_key_time, pred_ll) %>%
+  as.data.frame() %>%
+  reshape(
+    timevar   = "id_key_time",
+    idvar     = "CD_SETOR",
+    direction = "wide"
+  )
 
-map <- merge(shp[,c("CD_SETOR")], dw_ll, by.x = "CD_SETOR", by.y = "censitario")
-map_sf <- st_as_sf(map)
+setores_unicos <- df %>% st_drop_geometry() %>% select(CD_SETOR) %>% distinct()
+map <- merge(setores_unicos, dw_ll, by = "CD_SETOR")
 
+map_sf <- map %>%
+  pivot_longer(
+    cols = starts_with("pred_ll"),
+    names_to = "id_key_time",
+    values_to = "pred_ll"
+  )
 
-map_sf <- gather(map_sf, id_key_time, pred_ll, paste0("pred_ll.", 1:4, "_", rep(2012:2024, each = 4)))
-table(map_sf$id_key_time)
-
+map_sf <- left_join(map_sf, shp %>% select(CD_SETOR, geometry), by = "CD_SETOR") %>%  st_as_sf()
 map_sf$id <- gsub("pred_ll.", "", map_sf$id_key_time) 
 map_sf <- map_sf  %>% separate(id , c("season", "year"), sep="_")
 
@@ -220,17 +244,16 @@ ver_quantis <- function(vetor, n_classes) {
 }
 ver_quantis(map_sf$pred_ll,6)
 map_sf$quantil <- NA
-summary(map_sf$pred_ll)
 
-map_sf$quantil[map_sf$pred_ll > 0 & map_sf$pred_ll < 0.3] <- "0.01-0.30"
+map_sf$quantil[map_sf$pred_ll > 0 & map_sf$pred_ll < 0.30] <- "0.01-0.30"
 map_sf$quantil[map_sf$pred_ll >= 0.3 & map_sf$pred_ll < 0.8] <- "0.30-0.80"
-map_sf$quantil[map_sf$pred_ll >= 0.8 & map_sf$pred_ll < 2] <- "0.80-2.00"
-map_sf$quantil[map_sf$pred_ll >= 2 & map_sf$pred_ll < 6] <- "2.00-6.00"
-map_sf$quantil[map_sf$pred_ll >= 6 & map_sf$pred_ll < 20.0] <- "6.00-20.00"
-map_sf$quantil[map_sf$pred_ll >= 20] <-">20.00"
+map_sf$quantil[map_sf$pred_ll >= 0.8 & map_sf$pred_ll < 2.0] <- "0.80-2.00"
+map_sf$quantil[map_sf$pred_ll >= 2.0 & map_sf$pred_ll < 6.0] <- "2.00-6.00"
+map_sf$quantil[map_sf$pred_ll >= 6.0 & map_sf$pred_ll < 20.0] <- "6.00-16.00"
+map_sf$quantil[map_sf$pred_ll >= 16] <-">16.00"
 
 map_sf$quantil <- factor(map_sf$quantil, 
-                         levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-20.00",">20.00"))
+                         levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00"))
 
 table(map_sf$quantil)
 paleta <- scico(6, palette = "lajolla") #buda #hawaii #bamako #imola #nuuk #managua  #berlin #navia #bilbao
@@ -238,7 +261,7 @@ ggp_ll <- ggplot() +
   geom_sf(data = map_sf, aes(fill = quantil), color = "transparent") +
   theme_classic() + 
   scale_fill_manual(name = "pred_ll", values= rev(paleta),
-                    limits =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-20.00",">20.00")) + # Especificando as cores
+                    limits =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00")) + # Especificando as cores
   #   scale_fill_brewer(name = "", palette = "Reds"
   #                   #, direction = -1 
   # ) + 
@@ -301,16 +324,27 @@ dev.off()
 
 ################################################################################
 ##### dw_ul ####
-dw_ul <-df %>% select (id_key_time, censitario, pred_ul) %>% 
-  reshape(timevar = "id_key_time",
-          idvar = "censitario", direction = "wide")
+dw_ul <- df %>%
+  st_drop_geometry() %>%
+  select(CD_SETOR, id_key_time, pred_ul) %>%
+  as.data.frame() %>%
+  reshape(
+    timevar   = "id_key_time",
+    idvar     = "CD_SETOR",
+    direction = "wide"
+  )
 
-map <- merge(shp[,c("CD_SETOR")], dw_ul, by.x = "CD_SETOR", by.y = "censitario")
-map_sf <- st_as_sf(map)
+setores_unicos <- df %>% st_drop_geometry() %>% select(CD_SETOR) %>% distinct()
+map <- merge(setores_unicos, dw_ul, by = "CD_SETOR")
 
-map_sf <- gather(map_sf, id_key_time, pred_ul, paste0("pred_ul.", 1:4, "_", rep(2012:2024, each = 4)))
-table(map_sf$id_key_time)
+map_sf <- map %>%
+  pivot_longer(
+    cols = starts_with("pred_ul"),
+    names_to = "id_key_time",
+    values_to = "pred_ul"
+  )
 
+map_sf <- left_join(map_sf, shp %>% select(CD_SETOR, geometry), by = "CD_SETOR") %>%  st_as_sf()
 map_sf$id <- gsub("pred_ul.", "", map_sf$id_key_time) 
 map_sf <- map_sf  %>% separate(id , c("season", "year"), sep="_")
 
@@ -337,11 +371,11 @@ map_sf$quantil[map_sf$pred_ul > 0 & map_sf$pred_ul < 0.3] <- "0.01-0.30"
 map_sf$quantil[map_sf$pred_ul >= 0.3 & map_sf$pred_ul < 0.8] <- "0.30-0.80"
 map_sf$quantil[map_sf$pred_ul >= 0.8 & map_sf$pred_ul < 2] <- "0.80-2.00"
 map_sf$quantil[map_sf$pred_ul >= 2 & map_sf$pred_ul < 6] <- "2.00-6.00"
-map_sf$quantil[map_sf$pred_ul >= 6 & map_sf$pred_ul < 20.0] <- "6.00-20.00"
-map_sf$quantil[map_sf$pred_ul >= 20] <-">20.00"
+map_sf$quantil[map_sf$pred_ul >= 6 & map_sf$pred_ul < 16.0] <- "6.00-16.00"
+map_sf$quantil[map_sf$pred_ul >= 16] <-">16.00"
 
 map_sf$quantil <- factor(map_sf$quantil, 
-                         levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-20.00",">20.00"))
+                         levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00"))
 
 table(map_sf$quantil)
 paleta <- scico(6, palette = "lajolla") #buda #hawaii #bamako #imola #nuuk #managua  #berlin #navia #bilbao
@@ -349,7 +383,7 @@ ggp_ul <- ggplot() +
   geom_sf(data = map_sf, aes(fill = quantil), color = "transparent") +
   theme_classic() + 
   scale_fill_manual(name = "pred_ul", values= rev(paleta),
-                    limits =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-20.00",">20.00")) + # Especificando as cores
+                    limits =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00")) + # Especificando as cores
   #   scale_fill_brewer(name = "", palette = "Reds"
   #                   #, direction = -1 
   # ) + 
