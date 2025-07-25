@@ -26,7 +26,7 @@ data_st = left_join(shp, data, by=c("CD_SETOR" = "censitario")) #from here data_
 data_st$time2<-data_st$time
 
 #To open the model - open the file below
-load('modelos\\model_intI.RData')
+#load('modelos\\model_intI.RData')
 
 ####### TEMPERATURE AND PRECIPTATION NOT LINEAR
 # MODEL WITH ONLY VARIABLES, WITHOUT SPACE AND TIME
@@ -232,7 +232,7 @@ formula.st.intI = casos ~ scale(ip_aeg) + scale(trab_vis_cc) + as.factor(pend_vi
                       f(ID.PREC, model='rw2',constr=TRUE, scale.model=TRUE,hyper=hyper)
                     
 model.st.intI = inla(formula=formula.st.intI, family="poisson", 
-                       data=data_st, offset=log(pessoa_ajustada/100),
+                       data=data_st, offset=log(pessoa_ajustada/1000),
                        control.compute=list(waic = TRUE, dic=T,cpo = TRUE, config = TRUE,
                        return.marginals.predictor=TRUE),
                        control.fixed = list(prec.intercept=0.01,prec=0.01))
@@ -302,7 +302,7 @@ formula.st.intII <- casos ~ scale(ip_aeg) + scale(trab_vis_cc) + as.factor(pend_
                       f(ID.PREC, model='rw2', constr=TRUE,scale.model=TRUE,hyper=hyper)
 inicio<-Sys.time()                            
 model.st.intII = inla(formula=formula.st.intII, family="poisson", data=data_st, 
-                        offset=log(pessoa_ajustada/100),
+                        offset=log(pessoa_ajustada/1000),
                        control.compute=list(waic = TRUE, dic=T,cpo = TRUE, config = TRUE,
                        return.marginals.predictor=TRUE),
                        control.fixed = list(prec.intercept=0.01,prec=0.01))
@@ -369,7 +369,7 @@ formula.st.intIII <- casos ~ scale(ip_aeg) + scale(trab_vis_cc) + as.factor(pend
 
 inicio <- Sys.time()
 model.st.intIII = inla(formula=formula.st.intIII, family="poisson", data=data_st, 
-                        offset=log(pessoa_ajustada/100),
+                        offset=log(pessoa_ajustada/1000),
                         control.compute=list(waic = TRUE,dic=TRUE, cpo = TRUE, config = TRUE,
                         return.marginals.predictor=TRUE), 
                         control.fixed = list(prec.intercept=0.01,prec=0.01))
@@ -433,7 +433,7 @@ formula.st.intIV <- casos ~ scale(ip_aeg) + scale(trab_vis_cc) + as.factor(pend_
                       f(ID.PREC, model="rw2", constr=TRUE, scale.model=TRUE,hyper=hyper)
 inicio<-Sys.time()                            
 model.st.intIV = inla(formula=formula.st.intIV, family="poisson", data=data_st, 
-				offset=log(pessoa_ajustada/100),
+				offset=log(pessoa_ajustada/1000),
                         control.compute=list(waic = TRUE,dic=TRUE, cpo = TRUE, config = TRUE,
                         return.marginals.predictor=TRUE), 
                         control.fixed = list(prec.intercept=0.01,prec=0.01))
@@ -529,5 +529,4 @@ TempI = ggplot(RR_stIntI.RW, aes(x=periodo,y=RR_I,group=1)) +
 TempI
 
 #########################################################
-#  FILE: MODEL INTERPRETATION - GENERATE THE PREDICTED GRAPHIC
 #  FILE: PREDICTED MAP

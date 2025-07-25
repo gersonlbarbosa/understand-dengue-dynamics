@@ -20,12 +20,7 @@ setwd("c:\\users\\gerson.laurindo\\desktop\\Imperial\\scripts\\")
 data_folder<-"C:\\Users\\gerson.laurindo\\desktop\\Imperial\\Dados\\"
 map_folder<-"C:\\Users\\gerson.laurindo\\desktop\\Imperial\\Mapas\\"
 source('reading data.R')
-#for (i in 1:29) {
-# if (any(is.na(data[i]))) 
-#    {
-#      print(names(data[i]))
-#    }
-# }
+
 source("HighstatLibV10.R") 
 
 ################################ EXPLORING VARIABLES

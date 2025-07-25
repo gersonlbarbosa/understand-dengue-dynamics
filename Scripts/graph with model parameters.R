@@ -18,8 +18,8 @@ Covariates = c("Predial Index",
 
 
 lower=c(1.009,1.125,1,1.049,1.044,0.665,1.025,1,0.795,0.932,0.799,0.856,0.91,1.047)
-IRR=c(1.023,1.137,1,1.082,1.079,0.693,1.04,1,0.894,1.04,0.83,0.895,1.033,1.086)
-upper=c(1.038,1.15,1,1.116,1.115,0.723,1.055,1,1.002,1.166,0.996,0.935,1.076,1.126)
+IRR=c(1.023,1.137,1,1.082,1.079,0.693,1.040,1,0.894,1.045,0.893,0.895,1.033,1.086)
+upper=c(1.038,1.150,1,1.116,1.115,0.723,1.055,1,1.002,1.166,0.996,0.935,1.076,1.126)
 type <- c( rep("Entomologico",2),"Ref.", rep("Entomologico", 4),"Ref.",
   rep("Entomologico", 3), rep("Socioeconomico",3) )
 
@@ -60,5 +60,4 @@ grafico <- ggplot(data, aes(x = IRR, y = Covariates, color = color)) +
     legend.text = element_text(size = 10)
   )
 grafico
-#ggsave("grafico_tipo.png", width = 6, height = 6, dpi = 300,bg = "white")
-dir()
+#ggsave("model.png", width = 6, height = 6, dpi = 300,bg = "white")
