@@ -106,6 +106,12 @@ dengue_sc <- ggplot(dados_resumo, aes(x = Periodo)) +
     legend.position = "bottom"
   )
 dengue_sc
+jpeg("mapas/Deng-Sc_casos.png", width = 24, height = 16, 
+     units = "cm", res = 1000, type = "cairo"
+     # compression = "lzw"
+)
+dengue_sc
+dev.off()
 ################################# TEMPERATURE AND PRECIPITATION JOIN
 dados_resumo$tmax <- as.numeric(dados_resumo$tmax)
 dados_resumo$prec_ac <- as.numeric(dados_resumo$prec_ac)
@@ -120,7 +126,7 @@ temp_prec<-ggplot(dados_resumo, aes(x = Periodo)) +
   # Adding segments (traces) above the bars "Q1"
   geom_segment(data = dados_q1, aes(x = Periodo, xend = Periodo, y = -max(prec_ac, na.rm = TRUE)*0.02, yend = 0),
          color = "black", linetype = "dashed", size = 1) +
-  scale_y_continuous(name = "Accumulated Precipitation",
+  scale_y_continuous(name = "Accumulated Rainfall",
   sec.axis = sec_axis(~ . * max(dados_resumo$tmax, na.rm = TRUE) / max(dados_resumo$prec_ac, na.rm = TRUE), 
                         name = "Maximum Temperature", breaks = scales::pretty_breaks(n = 10))) +
   scale_x_discrete( breaks = periodos_q1, labels = periodos_q1 ) +
@@ -147,6 +153,14 @@ temp_prec<-ggplot(dados_resumo, aes(x = Periodo)) +
     legend.position = "bottom"
   )
 temp_prec
+
+
+jpeg("mapas/TempPrec.png", width = 24, height = 16, 
+     units = "cm", res = 1000, type = "cairo"
+     # compression = "lzw"
+)
+temp_prec
+dev.off()
 
 ##########################################################
 #  PLOTING VISITING AND FOGGING TOGETHER
@@ -192,6 +206,13 @@ visit_neb<-ggplot(dados_long, aes(x = Periodo, y = Valor, fill = Variavel)) +
     legend.position = "bottom"
   )
 visit_neb
+
+jpeg("mapas/Vist_Fogg_trend.png", width = 24, height = 16, 
+     units = "cm", res = 1000, type = "cairo"
+     # compression = "lzw"
+)
+visit_neb
+dev.off()
 
 ##############################################################
 visit_rotcc<-ggplot(dados_resumo, aes(x = Periodo, y = trab_vis_cc)) +
