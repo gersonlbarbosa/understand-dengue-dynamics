@@ -14,6 +14,7 @@ library(spdep)
 library(cowplot)
 library(RSpectra)
 library(RColorBrewer)
+library(viridis)
 ####
 setwd("c:\\users\\gerson.laurindo\\desktop\\Imperial\\scripts\\")
 data_folder<-"c:\\users\\gerson.laurindo\\desktop\\Imperial\\Dados\\"
@@ -115,13 +116,17 @@ map_sf$quantil <- factor(map_sf$quantil,
                          levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00"))
 
 #table(map_sf$quantil)
-#library(scico)
-paleta <- scico(6, palette = "lajolla") #buda #hawaii #bamako #imola #nuuk #managua  #berlin #navia #bilbao
+#paleta <- brewer.pal(6, "YlGnBu") 
+#paleta <- brewer.pal(6, "Set1")
+paleta <- brewer.pal(6, "Set2")
+#paleta <- viridis(6, option = "cividis")
+#paleta <- scico(6, palette = "lajolla") #buda #hawaii #bamako #imola #nuuk #managua  #berlin #navia #bilbao
 #paleta <- c("#0277BD",'#abdda4', '#ffffbf', '#fdae61', "red", "darkred")
 ggp <- ggplot() +
   geom_sf(data = map_sf, aes(fill = quantil), color = "transparent") +
   theme_classic() + 
   scale_fill_manual(name = "pred_mean", values= rev(paleta), 
+#  scale_fill_manual(name = "pred_mean", values= (paleta), 
                     limits =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00")) + # Especificando as cores
   # Se usar RcolorBrewer - abrir esse abaixo
   #   scale_fill_brewer(name = "pred_mean", palette = "Blues"
@@ -178,12 +183,12 @@ ggp
 # st_crs(map_sf)
 # st_bbox(map_sf)
 
-jpeg("mapas/map_predmean_offset_1000.jpeg", width = 14, height = 10, 
-     units = "cm", res = 2000, type = "cairo"
+jpeg("mapas/map_predmean.jpeg", width = 14, height = 10, 
+     units = "cm", res = 1000, type = "cairo"
      # compression = "lzw"
 )
 ggp 
-north2(ggp = ggp, scale = 0.050, x = 0.98, y = 0.158, symbol = 10)
+north2(ggp = ggp, scale = 0.050, x = 0.98, y = 0.118, symbol = 10)
 dev.off()
 
 tiff("mapas/map_predmean.tiff", 
@@ -256,7 +261,8 @@ map_sf$quantil <- factor(map_sf$quantil,
                          levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00"))
 
 table(map_sf$quantil)
-paleta <- scico(6, palette = "lajolla") #buda #hawaii #bamako #imola #nuuk #managua  #berlin #navia #bilbao
+paleta <- brewer.pal(6, "Set2")
+#paleta <- scico(6, palette = "lajolla") #buda #hawaii #bamako #imola #nuuk #managua  #berlin #navia #bilbao
 ggp_ll <- ggplot() +
   geom_sf(data = map_sf, aes(fill = quantil), color = "transparent") +
   theme_classic() + 
@@ -312,7 +318,7 @@ jpeg("mapas/map_pred_lowerl.jpeg", width = 14, height = 10,
      # compression = "lzw"
 )
 ggp_ll
-north2(ggp = ggp_ll, scale = 0.050, x = 0.98, y = 0.158, symbol = 10)
+north2(ggp = ggp_ll, scale = 0.050, x = 0.98, y = 0.118, symbol = 10)
 dev.off()
   
 tiff("mapas/map_pred_lowerl.tiff", 
@@ -378,7 +384,8 @@ map_sf$quantil <- factor(map_sf$quantil,
                          levels =  c("0.01-0.30","0.30-0.80","0.80-2.00","2.00-6.00","6.00-16.00",">16.00"))
 
 table(map_sf$quantil)
-paleta <- scico(6, palette = "lajolla") #buda #hawaii #bamako #imola #nuuk #managua  #berlin #navia #bilbao
+paleta <- brewer.pal(6, "Set2")
+#paleta <- scico(6, palette = "lajolla") #buda #hawaii #bamako #imola #nuuk #managua  #berlin #navia #bilbao
 ggp_ul <- ggplot() +
   geom_sf(data = map_sf, aes(fill = quantil), color = "transparent") +
   theme_classic() + 
@@ -434,7 +441,7 @@ jpeg("mapas/map_pred_upperl.jpeg", width = 14, height = 10,
      # compression = "lzw"
 )
 ggp_ul
-north2(ggp = ggp_ul, scale = 0.050, x = 0.98, y = 0.158, symbol = 10)
+north2(ggp = ggp_ul, scale = 0.050, x = 0.98, y = 0.118, symbol = 10)
 dev.off()
 
 
